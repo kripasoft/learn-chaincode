@@ -32,9 +32,14 @@ type  SimpleChaincode struct {
 }*/
 type Invoice struct{
 	InvoiceNo string `json:"invoiceno"`	
-	LegalEntity string `json:"legalentity"`
+	BillToCustomer string `json:"billtocustomer"`
+	BillToCustomerSite string `json:"billtocustomersite"`
 	Currency string `json:"currency"`				
-	Balance string `json:"balance"`
+	Amount string `json:"amount"`
+	PaymentTerms string `json:"paymentterms"`				
+	DueDate string `json:"duedate"`
+	InvoiceStatus string `json:"invoicestatus"`				
+	InvoiceRating string `json:"invoicerating"`
 }
 
 var invoiceIndexStr = "_invoiceindex"	  // Define an index varibale to track all the invoices stored in the world state
@@ -199,11 +204,11 @@ func (t *SimpleChaincode) Write(stub shim.ChaincodeStubInterface, args []string)
 func (t *SimpleChaincode) init_invoice(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	var err error
 
-	//       0        1      2      3
-	// "invoiceNo", "bob", "USD", "3500"
+	//       0        1         2     3	4	   5	     6	            7	     8
+	// "invoiceNo", "Oracle", "HQ", "USD", "1000.00", "Check", "08/15/2017", "Unsold", "AAA" 
 
-	if len(args) != 4 {
-		return nil, errors.New("Incorrect number of arguments. Expecting 4")
+	if len(args) != 9 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 9")
 	}
 
 	//input sanitation
@@ -218,16 +223,43 @@ func (t *SimpleChaincode) init_invoice(stub shim.ChaincodeStubInterface, args []
 		return nil, errors.New("3rd argument must be a non-empty string")
 	}
 	if len(args[3]) <= 0 {
-		return nil, errors.New("3rd argument must be a non-empty string")
+		return nil, errors.New("4th argument must be a non-empty string")
+	}
+	if len(args[4]) <= 0 {
+		return nil, errors.New("5th argument must be a non-empty string")
+	}
+	if len(args[5]) <= 0 {
+		return nil, errors.New("6th argument must be a non-empty string")
+	}
+	if len(args[6]) <= 0 {
+		return nil, errors.New("7th argument must be a non-empty string")
+	}
+	if len(args[7]) <= 0 {
+		return nil, errors.New("8th argument must be a non-empty string")
+	}
+	if len(args[8]) <= 0 {
+		return nil, errors.New("9th argument must be a non-empty string")
 	}
 
 	invoiceNo := args[0]
+	
+	billtocustomer := args[1]
+	
+	billtocustomersite := args[2]
 
-	amount := strings.ToLower(args[1])
+	currency := args[3]
 
-	currency := args[2]
+	amount := strings.ToLower(args[4])
 
-	ammount, err := strconv.ParseFloat(args[3],64)
+	paymentterms := args[5]
+
+	duedate := args[6]
+
+	invoicestatus := args[7]
+
+	invoicerating := args[8]
+
+	ammount, err := strconv.ParseFloat(args[4],64)
 	if err != nil {
 		return nil, errors.New("4rd argument must be a numeric string")
 	}
