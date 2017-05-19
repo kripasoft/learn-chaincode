@@ -35,7 +35,7 @@ type Invoice struct{
 	BillToCustomer string `json:"billtocustomer"`
 	BillToCustomerSite string `json:"billtocustomersite"`
 	Currency string `json:"currency"`				
-	Amount string `json:"amount"`
+	Amount string `json:"amountStr"`
 	PaymentTerms string `json:"paymentterms"`				
 	DueDate string `json:"duedate"`
 	InvoiceStatus string `json:"invoicestatus"`				
@@ -249,7 +249,7 @@ func (t *SimpleChaincode) init_invoice(stub shim.ChaincodeStubInterface, args []
 
 	currency := args[3]
 
-	amount := strings.ToLower(args[4])
+	amountStr := strings.ToLower(args[4])
 
 	paymentterms := args[5]
 
@@ -259,7 +259,8 @@ func (t *SimpleChaincode) init_invoice(stub shim.ChaincodeStubInterface, args []
 
 	invoicerating := args[8]
 
-	ammount, err := strconv.ParseFloat(args[4],64)
+	//amount, err := strconv.ParseFloat(args[4], 64)
+	//amount,err := strconv.ParseFloat(args[2], 64)
 	if err != nil {
 		return nil, errors.New("4rd argument must be a numeric string")
 	}
@@ -275,11 +276,13 @@ func (t *SimpleChaincode) init_invoice(stub shim.ChaincodeStubInterface, args []
 	if res.InvoiceNo == invoiceNo{
 		return nil, errors.New("This invoice arleady exists")			
 	}
-	amountStr := strconv.FormatFloat(ammount, 'E', -1, 64)
+	//amountStr := strconv.FormatFloat(amountStr, 'E', -1, 64)
 
 	//build the invoice json string 
-	str := `{"invoiceno": "` + invoiceNo + `", "amount": "` + amount + `", "currency": "` + currency + `", "balance": "` + amountStr + `"}`
-	err = stub.PutState(invoiceNo, []byte(str))							
+	//str := `{"invoiceno": "` + invoiceNo + `", "amount": "` + amount + `", "currency": "` + currency + `", "balance": "` + amountStr + `"}`
+	str := `{"invoiceno": "` + invoiceNo + `”, "BillToCustomer": "` + billtocustomer + `", "BillToCustomerSite": "` + billtocustomersite + `", "Currency": "` + currency + `", "Amount": "` + amountStr + `", "PaymentTerms": "` + paymentterms + `", "DueDate": "` + duedate + `", "InvoiceStatus": "` + invoicestatus + `", "InvoiceRating": "` + invoicerating + `"}` 
+	
+        err = stub.PutState(invoiceNo, []byte(str))							
 	if err != nil {
 		return nil, err
 	}
@@ -309,13 +312,13 @@ func (t *SimpleChaincode) transfer_balance(stub shim.ChaincodeStubInterface, arg
 	// "invoiceA", "invoiceB", "100.20"
 
 	var err error
-	var newAmountA, newAmountB float64
+	//var newAmountA, newAmountB float64
 
 	if len(args) < 3 {
 		return nil, errors.New("Incorrect number of arguments. Expecting 3")
 	}
 
-	amount,err := strconv.ParseFloat(args[2], 64)
+	//amount,err := strconv.ParseFloat(args[2], 64)
 	if err != nil {
 		return nil, errors.New("3rd argument must be a numeric string")
 	}
@@ -334,27 +337,27 @@ func (t *SimpleChaincode) transfer_balance(stub shim.ChaincodeStubInterface, arg
 	resB := Invoice{}
 	json.Unmarshal(invoiceBAsBytes, &resB)											
 	
-	BalanceA,err := strconv.ParseFloat(resA.Balance, 64)
+	//BalanceA,err := strconv.ParseFloat(resA.Balance, 64)
 	if err != nil {
 		return nil, err
 	}
-	BalanceB,err := strconv.ParseFloat(resB.Balance, 64)
+	//BalanceB,err := strconv.ParseFloat(resB.Balance, 64)
 	if err != nil {
 		return nil, err
 	}
 
 	//Check if invoiceA has enough balance to transact or not
-	if (BalanceA - amount) < 0 {
+	/* if (BalanceA - amount) < 0 {
 		return nil, errors.New(args[0] + " doesn't have enough balance to complete transaction")
-	}
+	}*/
 
-	newAmountA = BalanceA - amount
-	newAmountB =  BalanceB + amount
-	newAmountStrA := strconv.FormatFloat(newAmountA, 'E', -1, 64)
-	newAmountStrB := strconv.FormatFloat(newAmountB, 'E', -1, 64)
+	//newAmountA = BalanceA - amount
+	//newAmountB =  BalanceB + amount
+	//newAmountStrA := strconv.FormatFloat(newAmountA, 'E', -1, 64)
+	//newAmountStrB := strconv.FormatFloat(newAmountB, 'E', -1, 64)
 
-	resA.Balance = newAmountStrA
-	resB.Balance = newAmountStrB
+	//resA.Balance = newAmountStrA
+	//resB.Balance = newAmountStrB
 
 	jsonAAsBytes, _ := json.Marshal(resA)
 	err = stub.PutState(args[0], jsonAAsBytes)								
