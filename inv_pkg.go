@@ -91,25 +91,23 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 // Invoke - Called on chaincode invoke. Takes a function name passed and calls that function. Converts some
 //		    initial arguments passed to other things for use in the called function.
 // ============================================================================================================================
+
 func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 
-	// Handle different functions
-	if function == "init" {										//initialize the chaincode state, used as reset
-		return t.Init(stub, "init", args)
-	} else if function == "delete" {									
-		return t.Delete(stub, args)												
-	} else if function == "write" {									
-		return t.Write(stub, args)
-	} else if function == "init_invoice" {									
-		return t.init_invoice(stub, args)
-	} else if function == "transfer_balance" {									
-		return t.transfer_balance(stub, args)										
-	}
-	} else if function == "buy_invoice" {									
-		return t.buy_invoice(stub, args)										
-	}
+        // Handle different functions
+        if function == "init" {                                                                         //initialize the chaincode state, used as reset
+                return t.Init(stub, "init", args)
+        } else if function == "delete" {
+                return t.Delete(stub, args)
+        } else if function == "write" {
+                return t.Write(stub, args)
+        } else if function == "init_invoice" {
+                return t.init_invoice(stub, args)
+        } else if function == "buy_invoice" {
+                return t.buy_invoice(stub, args)
+        }
 
-	return nil, errors.New("Received unknown function invocation: " + function)
+        return nil, errors.New("Received unknown function invocation: " + function)
 }
 
 // ============================================================================================================================
@@ -380,9 +378,9 @@ func (t *SimpleChaincode) transfer_balance(stub shim.ChaincodeStubInterface, arg
 // Buy Invoice  - Create a transaction that allows an investor to purchase an invoice
 // ============================================================================================================================
 func (t *SimpleChaincode) buy_invoice(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	
+
 	//       0           1         2
-	// "invoiceId", "invoicestatus - Scheduled", "rating - AAA/AA/A/B"
+	// "invoiceId", "invoicestatus - Open", "rating - AAA/AA/A/B"
 
 	var err error
 	//var newAmountA, newAmountB float64
@@ -400,52 +398,14 @@ func (t *SimpleChaincode) buy_invoice(stub shim.ChaincodeStubInterface, args []s
 		return nil, errors.New("3rd argument must be Rating 'AAA' or 'AA' or 'A' or 'B' ")
 	}
 
-/*
-	invoiceAAsBytes, err := stub.GetState(args[0])
-	if err != nil {
-		return nil, errors.New("Failed to get the first invoice")
-	}
-	resA := Invoice{}
-	json.Unmarshal(invoiceAAsBytes, &resA)								
-	
-	invoiceBAsBytes, err := stub.GetState(args[1])
-	if err != nil {
-		return nil, errors.New("Failed to get the second invoice")
-	}
-	resB := Invoice{}
-	json.Unmarshal(invoiceBAsBytes, &resB)											
-	
-	//BalanceA,err := strconv.ParseFloat(resA.Balance, 64)
-	if err != nil {
-		return nil, err
-	}
-	//BalanceB,err := strconv.ParseFloat(resB.Balance, 64)
-	if err != nil {
-		return nil, err
-	}
+	invoicestatus := args[1]
 
-	//Check if invoiceA has enough balance to transact or not
-	/* if (BalanceA - amount) < 0 {
-		return nil, errors.New(args[0] + " doesn't have enough balance to complete transaction")
-	}*/
+	str := "Sold"
 
-	//newAmountA = BalanceA - amount
-	//newAmountB =  BalanceB + amount
-	//newAmountStrA := strconv.FormatFloat(newAmountA, 'E', -1, 64)
-	//newAmountStrB := strconv.FormatFloat(newAmountB, 'E', -1, 64)
+        err = stub.PutState(invoicestatus, []byte(str))
+        if err != nil {
+                return nil, err
+        }
+	return t.Write(stub, args)
 
-	//resA.Balance = newAmountStrA
-	//resB.Balance = newAmountStrB
-
-	jsonAAsBytes, _ := json.Marshal(resA)
-	err = stub.PutState(args[0], jsonAAsBytes)								
-	if err != nil {
-		return nil, err
 	}
-
-	jsonBAsBytes, _ := json.Marshal(resB)
-	err = stub.PutState(args[1], jsonBAsBytes)								
-	if err != nil {
-		return nil, err
-	}
-	
