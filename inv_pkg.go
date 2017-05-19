@@ -402,6 +402,7 @@ func (t *SimpleChaincode) buy_invoice(stub shim.ChaincodeStubInterface, args []s
 
 	str := "Sold"
 
+
         err = stub.PutState(invoicestatus, []byte(str))
         if err != nil {
                 return nil, err
