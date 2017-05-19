@@ -32,9 +32,14 @@ type  SimpleChaincode struct {
 }*/
 type Invoice struct{
 	InvoiceNo string `json:"invoiceno"`	
-	LegalEntity string `json:"legalentity"`
+	BillToCustomer string `json:"billtocustomer"`
+	BillToCustomerSite string `json:"billtocustomersite"`
 	Currency string `json:"currency"`				
-	Balance string `json:"balance"`
+	Amount string `json:"amountStr"`
+	PaymentTerms string `json:"paymentterms"`				
+	DueDate string `json:"duedate"`
+	InvoiceStatus string `json:"invoicestatus"`				
+	InvoiceRating string `json:"invoicerating"`
 }
 
 var invoiceIndexStr = "_invoiceindex"	  // Define an index varibale to track all the invoices stored in the world state
@@ -99,6 +104,9 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 		return t.init_invoice(stub, args)
 	} else if function == "transfer_balance" {									
 		return t.transfer_balance(stub, args)										
+	}
+	} else if function == "buy_invoice" {									
+		return t.buy_invoice(stub, args)										
 	}
 
 	return nil, errors.New("Received unknown function invocation: " + function)
@@ -199,11 +207,11 @@ func (t *SimpleChaincode) Write(stub shim.ChaincodeStubInterface, args []string)
 func (t *SimpleChaincode) init_invoice(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	var err error
 
-	//       0        1      2      3
-	// "invoiceNo", "bob", "USD", "3500"
+	//       0        1         2     3	4	   5	     6	            7	     8
+	// "invoiceNo", "Oracle", "HQ", "USD", "1000.00", "Check", "08/15/2017", "Open", "AAA" 
 
-	if len(args) != 4 {
-		return nil, errors.New("Incorrect number of arguments. Expecting 4")
+	if len(args) != 9 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 9")
 	}
 
 	//input sanitation
@@ -218,16 +226,44 @@ func (t *SimpleChaincode) init_invoice(stub shim.ChaincodeStubInterface, args []
 		return nil, errors.New("3rd argument must be a non-empty string")
 	}
 	if len(args[3]) <= 0 {
-		return nil, errors.New("3rd argument must be a non-empty string")
+		return nil, errors.New("4th argument must be a non-empty string")
+	}
+	if len(args[4]) <= 0 {
+		return nil, errors.New("5th argument must be a non-empty string")
+	}
+	if len(args[5]) <= 0 {
+		return nil, errors.New("6th argument must be a non-empty string")
+	}
+	if len(args[6]) <= 0 {
+		return nil, errors.New("7th argument must be a non-empty string")
+	}
+	if len(args[7]) <= 0 {
+		return nil, errors.New("8th argument must be a non-empty string")
+	}
+	if len(args[8]) <= 0 {
+		return nil, errors.New("9th argument must be a non-empty string")
 	}
 
 	invoiceNo := args[0]
+	
+	billtocustomer := args[1]
+	
+	billtocustomersite := args[2]
 
-	amount := strings.ToLower(args[1])
+	currency := args[3]
 
-	currency := args[2]
+	amountStr := strings.ToLower(args[4])
 
-	ammount, err := strconv.ParseFloat(args[3],64)
+	paymentterms := args[5]
+
+	duedate := args[6]
+
+	invoicestatus := args[7]
+
+	invoicerating := args[8]
+
+	//amount, err := strconv.ParseFloat(args[4], 64)
+	//amount,err := strconv.ParseFloat(args[2], 64)
 	if err != nil {
 		return nil, errors.New("4rd argument must be a numeric string")
 	}
@@ -243,11 +279,13 @@ func (t *SimpleChaincode) init_invoice(stub shim.ChaincodeStubInterface, args []
 	if res.InvoiceNo == invoiceNo{
 		return nil, errors.New("This invoice arleady exists")			
 	}
-	amountStr := strconv.FormatFloat(ammount, 'E', -1, 64)
+	//amountStr := strconv.FormatFloat(amountStr, 'E', -1, 64)
 
 	//build the invoice json string 
-	str := `{"invoiceno": "` + invoiceNo + `", "amount": "` + amount + `", "currency": "` + currency + `", "balance": "` + amountStr + `"}`
-	err = stub.PutState(invoiceNo, []byte(str))							
+	//str := `{"invoiceno": "` + invoiceNo + `", "amount": "` + amount + `", "currency": "` + currency + `", "balance": "` + amountStr + `"}`
+	str := `{"invoiceno": "` + invoiceNo + `”, "BillToCustomer": "` + billtocustomer + `", "BillToCustomerSite": "` + billtocustomersite + `", "Currency": "` + currency + `", "Amount": "` + amountStr + `", "PaymentTerms": "` + paymentterms + `", "DueDate": "` + duedate + `", "InvoiceStatus": "` + invoicestatus + `", "InvoiceRating": "` + invoicerating + `"}` 
+	
+        err = stub.PutState(invoiceNo, []byte(str))							
 	if err != nil {
 		return nil, err
 	}
@@ -277,13 +315,13 @@ func (t *SimpleChaincode) transfer_balance(stub shim.ChaincodeStubInterface, arg
 	// "invoiceA", "invoiceB", "100.20"
 
 	var err error
-	var newAmountA, newAmountB float64
+	//var newAmountA, newAmountB float64
 
 	if len(args) < 3 {
 		return nil, errors.New("Incorrect number of arguments. Expecting 3")
 	}
 
-	amount,err := strconv.ParseFloat(args[2], 64)
+	//amount,err := strconv.ParseFloat(args[2], 64)
 	if err != nil {
 		return nil, errors.New("3rd argument must be a numeric string")
 	}
@@ -302,27 +340,27 @@ func (t *SimpleChaincode) transfer_balance(stub shim.ChaincodeStubInterface, arg
 	resB := Invoice{}
 	json.Unmarshal(invoiceBAsBytes, &resB)											
 	
-	BalanceA,err := strconv.ParseFloat(resA.Balance, 64)
+	//BalanceA,err := strconv.ParseFloat(resA.Balance, 64)
 	if err != nil {
 		return nil, err
 	}
-	BalanceB,err := strconv.ParseFloat(resB.Balance, 64)
+	//BalanceB,err := strconv.ParseFloat(resB.Balance, 64)
 	if err != nil {
 		return nil, err
 	}
 
 	//Check if invoiceA has enough balance to transact or not
-	if (BalanceA - amount) < 0 {
+	/* if (BalanceA - amount) < 0 {
 		return nil, errors.New(args[0] + " doesn't have enough balance to complete transaction")
-	}
+	}*/
 
-	newAmountA = BalanceA - amount
-	newAmountB =  BalanceB + amount
-	newAmountStrA := strconv.FormatFloat(newAmountA, 'E', -1, 64)
-	newAmountStrB := strconv.FormatFloat(newAmountB, 'E', -1, 64)
+	//newAmountA = BalanceA - amount
+	//newAmountB =  BalanceB + amount
+	//newAmountStrA := strconv.FormatFloat(newAmountA, 'E', -1, 64)
+	//newAmountStrB := strconv.FormatFloat(newAmountB, 'E', -1, 64)
 
-	resA.Balance = newAmountStrA
-	resB.Balance = newAmountStrB
+	//resA.Balance = newAmountStrA
+	//resB.Balance = newAmountStrB
 
 	jsonAAsBytes, _ := json.Marshal(resA)
 	err = stub.PutState(args[0], jsonAAsBytes)								
@@ -338,3 +376,76 @@ func (t *SimpleChaincode) transfer_balance(stub shim.ChaincodeStubInterface, arg
 	
 	return nil, nil
 }
+// ============================================================================================================================
+// Buy Invoice  - Create a transaction that allows an investor to purchase an invoice
+// ============================================================================================================================
+func (t *SimpleChaincode) buy_invoice(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	
+	//       0           1         2
+	// "invoiceId", "invoicestatus - Scheduled", "rating - AAA/AA/A/B"
+
+	var err error
+	//var newAmountA, newAmountB float64
+
+	if len(args) < 3 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 3")
+	}
+
+	//invoicestatus,err := strconv.ParseString(args[1])
+	if err != nil {
+		return nil, errors.New("2nd argument must be status 'Scheduled' ")
+	}
+	//invoicerating,err := strconv.ParseString(args[2])
+	if err != nil {
+		return nil, errors.New("3rd argument must be Rating 'AAA' or 'AA' or 'A' or 'B' ")
+	}
+
+/*
+	invoiceAAsBytes, err := stub.GetState(args[0])
+	if err != nil {
+		return nil, errors.New("Failed to get the first invoice")
+	}
+	resA := Invoice{}
+	json.Unmarshal(invoiceAAsBytes, &resA)								
+	
+	invoiceBAsBytes, err := stub.GetState(args[1])
+	if err != nil {
+		return nil, errors.New("Failed to get the second invoice")
+	}
+	resB := Invoice{}
+	json.Unmarshal(invoiceBAsBytes, &resB)											
+	
+	//BalanceA,err := strconv.ParseFloat(resA.Balance, 64)
+	if err != nil {
+		return nil, err
+	}
+	//BalanceB,err := strconv.ParseFloat(resB.Balance, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	//Check if invoiceA has enough balance to transact or not
+	/* if (BalanceA - amount) < 0 {
+		return nil, errors.New(args[0] + " doesn't have enough balance to complete transaction")
+	}*/
+
+	//newAmountA = BalanceA - amount
+	//newAmountB =  BalanceB + amount
+	//newAmountStrA := strconv.FormatFloat(newAmountA, 'E', -1, 64)
+	//newAmountStrB := strconv.FormatFloat(newAmountB, 'E', -1, 64)
+
+	//resA.Balance = newAmountStrA
+	//resB.Balance = newAmountStrB
+
+	jsonAAsBytes, _ := json.Marshal(resA)
+	err = stub.PutState(args[0], jsonAAsBytes)								
+	if err != nil {
+		return nil, err
+	}
+
+	jsonBAsBytes, _ := json.Marshal(resB)
+	err = stub.PutState(args[1], jsonBAsBytes)								
+	if err != nil {
+		return nil, err
+	}
+	
